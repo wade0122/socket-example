@@ -1,0 +1,4 @@
+
+#dd if=/dev/zero of=send-data count=10 bs=1024
+dd if=/dev/random of=send-data count=10 bs=1024
+

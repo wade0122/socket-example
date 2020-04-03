@@ -10,7 +10,7 @@
 #include <time.h>
 #include <sys/time.h>
 
-#define HOST_PORT 23456
+#define HOST_PORT 4002
 #define HOST_IP "127.0.0.1"
 
 void PrintDateTime(void) {
@@ -32,22 +32,16 @@ int file_send_test(void) {
 	FILE *pFileR = NULL;
     char buffer[2048];
     int len;
-    int error;
 
     struct sockaddr_in serverAddr;
     memset(&serverAddr, 0, sizeof(serverAddr));
 
     serverAddr.sin_family = PF_INET;
     serverAddr.sin_port = htons(HOST_PORT);
-    serverAddr.sin_addr.s_addr = inet_addr(HOST_IP);//inet_addr("169.254.3.147");// INADDR_ANY
+    serverAddr.sin_addr.s_addr = inet_addr(HOST_IP);//inet_addr("169.254.3.159");// INADDR_ANY
 
-    int clientSockfd = socket(PF_INET, SOCK_STREAM, 0);
+    int clientSockfd = socket(PF_INET, SOCK_DGRAM, 0);
     assert(clientSockfd != -1);
-
-    error = connect(clientSockfd, (struct sockaddr*)&serverAddr, sizeof(serverAddr));
-    assert(error != -1);
-
-    printf("connected server.\n");
 
 	pFile = fopen("./send-data", "r");
     assert(pFile != NULL);
@@ -74,7 +68,7 @@ int file_send_test(void) {
             len = f_len>sizeof(buffer)?sizeof(buffer):f_len;
             len = fread(buffer, 1, len, pFile);
             if (len < 0) continue;
-            send(clientSockfd, buffer, len, 0);
+            sendto(clientSockfd, buffer, len, 0, (struct sockaddr*)&serverAddr, sizeof(serverAddr));
             f_len -= len;
             send_len += len;
             timeout = 0x0FFF;
@@ -91,7 +85,9 @@ int file_send_test(void) {
         }
 
         memset((void*)buffer, 0x00, sizeof(buffer));
-        len = recv(clientSockfd, buffer, sizeof(buffer), 0);
+        struct sockaddr_in s_addr;
+        int32_t s_addr_len;
+        len = recvfrom(clientSockfd, buffer, sizeof(buffer), 0, (struct sockaddr*)&s_addr, &s_addr_len);
         if (len > 0) {
 			fwrite(buffer, 1, len, pFileR);
             fflush(pFileR);
@@ -112,32 +108,29 @@ int file_send_test(void) {
 int loop_test(void) {
     char buffer[2048];
     int len;
-    int error;
 
     struct sockaddr_in serverAddr;
     memset(&serverAddr, 0, sizeof(serverAddr));
 
     serverAddr.sin_family = PF_INET;
     serverAddr.sin_port = htons(HOST_PORT);
-    serverAddr.sin_addr.s_addr = inet_addr(HOST_IP);// INADDR_ANY
+    serverAddr.sin_addr.s_addr = inet_addr(HOST_IP);//inet_addr("169.254.3.147");// INADDR_ANY
 
-    int clientSockfd = socket(AF_INET, SOCK_STREAM, 0);
+    int clientSockfd = socket(PF_INET, SOCK_DGRAM, 0);
     assert(clientSockfd != -1);
-
-    error = connect(clientSockfd, (struct sockaddr*)&serverAddr, sizeof(serverAddr));
-    assert(error != -1);
-
-    printf("connected server.\n");
 
     printf("send...\n");
     while(1){
         memset((void*)buffer, 0x00, sizeof(buffer));
         len = sprintf(buffer, "0123456789");
         printf("send length %d:%s\n", len, buffer);
-        send(clientSockfd, buffer, len, 0);
+        sendto(clientSockfd, buffer, len, 0, (struct sockaddr*)&serverAddr, sizeof(serverAddr));
         usleep(500000);
         memset((void*)buffer, 0x00, sizeof(buffer));
-        len = recv(clientSockfd, buffer, sizeof(buffer), 0);
+        struct sockaddr_in s_addr;
+        int32_t s_addr_len;
+        //len = recvfrom(clientSockfd, buffer, sizeof(buffer), 0, (struct sockaddr*)&s_addr, &s_addr_len);
+        len = recvfrom(clientSockfd, buffer, 1, 0, (struct sockaddr*)&s_addr, &s_addr_len);
         printf("rec length %d:%s\n", len, buffer);
     }
     close(clientSockfd);
@@ -145,7 +138,7 @@ int loop_test(void) {
 }
 
 int main(){
-    //file_send_test();
+   // file_send_test();
     loop_test();
     return 0;
 }

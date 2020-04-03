@@ -9,6 +9,9 @@
 #include <arpa/inet.h>
 #include <time.h>
 
+#define HOST_PORT 23456
+#define HOST_IP "127.0.0.1"
+
 void PrintDateTime(void) {
     time_t nSeconds;
     struct tm * pTime;
@@ -34,10 +37,10 @@ int main() {
     memset(&serverAddr, 0, sizeof(serverAddr));
 
     serverAddr.sin_family = PF_INET;
-    serverAddr.sin_port = htons(23456);
-    serverAddr.sin_addr.s_addr = inet_addr("169.254.3.147");// INADDR_ANY
+    serverAddr.sin_port = htons(HOST_PORT);
+    serverAddr.sin_addr.s_addr = inet_addr(HOST_IP);//inet_addr("169.254.3.147");// INADDR_ANY
 
-    int serverSockfd = socket(AF_INET, SOCK_STREAM, 0);
+    int serverSockfd = socket(PF_INET, SOCK_STREAM, 0);
     assert(serverSockfd != -1);
 
     error = bind(serverSockfd, (struct sockaddr*)&serverAddr, sizeof(serverAddr));
